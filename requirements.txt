@@ -1,0 +1,11 @@
+jax
+optax
+flax
+wandb
+tyro
+simple_pytree
+jaxopt
+tqdm
+scipy
+seaborn
+matplotlib
