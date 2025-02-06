@@ -86,8 +86,7 @@ class Simpleformer(Pytree):
         d_QK_ratio=1,
         use_mlp=False,
         use_log=False,
-        use_skip=True,
-        init_scale=1.0,
+        scale=1.0,
     ):
         self.vocab_size = vocab_size
         self.QK = qk
@@ -109,12 +108,12 @@ class Simpleformer(Pytree):
             else:
                 if qk:
                     self.Q = (
-                        init_scale
+                        scale
                         * jr.normal(keys[2], [n_head, d, d_hidden_QK])
                         / jnp.sqrt(d)
                     )
                     self.Kt = (
-                        init_scale
+                        scale
                         * jr.normal(keys[4], [n_head, d_hidden_QK, d])
                         / jnp.sqrt(d)
                     )

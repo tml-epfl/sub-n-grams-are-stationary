@@ -78,7 +78,6 @@ def main(
         "use_mlp": mlp_out,
         "use_log": log_out,
         "d_QK_ratio": dratio,
-        "use_skip": skip,
         "scale": scale,
     }
 
@@ -93,6 +92,7 @@ def main(
         if model_transformer == "transformer":
             transformer_specific_params = {
                 "embedding_type": transem,  # or "onehot" or "learned"
+                "use_skip": skip,
             }
             model = model_class(**common_params, **transformer_specific_params)
         elif model_transformer == "simple":
@@ -172,7 +172,7 @@ def main(
         return unigram, bigram_1, bigram_2, bigram_3, trigram
 
     print("Computing Bayes")
-    testx, testy = vmap(problem.sample)(rng.next(2**16))
+    testx, testy = vmap(problem.sample)(rng.next(2**10))
     logits = vmap(problem.bayes)(testx)
     bayes = criterion(logits, testy)
 
