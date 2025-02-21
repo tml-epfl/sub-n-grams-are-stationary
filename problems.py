@@ -67,7 +67,7 @@ class InContextTree:
 class InContextDAG:
     def __init__(self, vocab_size, dag, alpha):
         for i, p in enumerate(dag):
-            print(i, p)
+            # print(i, p)
             assert max(p, default=-1) < i
         dag = [jnp.array(p, dtype=int) for p in dag]
         self.vocab_size = vocab_size
