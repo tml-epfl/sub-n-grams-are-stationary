@@ -345,7 +345,8 @@ class Transformer(Pytree):
             for i in range(len(self.Q)):
                 Ai = jnp.matmul(self.Q[i], self.Kt[i])
                 Vi = self.V[i]
-                mlpi = self.mlps[i]
+                if self.use_mlp:
+                    mlpi = self.mlps[i]
                 attn = jax.vmap(self.attn, (None, 0), -2)(x, Ai)
                 attn = jnp.einsum("...ijk,jkl->...ijl", attn, Vi)
                 delta = jnp.sum(attn, axis=-2)
@@ -359,7 +360,8 @@ class Transformer(Pytree):
             for i in range(len(self.A)):
                 Ai = self.A[i]
                 Vi = self.V[i]
-                mlpi = self.mlps[i]
+                if self.use_mlp:
+                    mlpi = self.mlps[i]
                 attn = jax.vmap(self.attn, (None, 0), -2)(x, Ai)
                 attn = jnp.einsum("...ijk,jkl->...ijl", attn, Vi)
                 delta = jnp.sum(attn, axis=-2)
