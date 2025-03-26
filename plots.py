@@ -34,6 +34,7 @@ def plot_model_catformer(
     lower=15,
     upper=100,
     c_bar=False,
+    step=None,
 ):
     if qk:
         for i in range(len(model.Q[0])):
@@ -47,7 +48,7 @@ def plot_model_catformer(
             filename = wandb.run.dir + f"/A1.png"
             plt.savefig(filename, bbox_inches="tight", dpi=100)
             # wandb.log({f"A1/{lower}_{upper}": wandb.Image(Image.open(filename))})
-            wandb.log({f"A1/head_{i}": wandb.Image(Image.open(filename))})
+            wandb.log({f"A1/head_{i}": wandb.Image(Image.open(filename))}, step=step)
             plt.close(fig)
 
             if input is not None:
@@ -61,13 +62,15 @@ def plot_model_catformer(
                 fig = plot_mtx(attn, c_bar=c_bar)
                 filename = wandb.run.dir + f"/Att1_head.png"
                 plt.savefig(filename, bbox_inches="tight", dpi=100)
-                wandb.log({f"Att1/head_{i}": wandb.Image(Image.open(filename))})
+                wandb.log(
+                    {f"Att1/head_{i}": wandb.Image(Image.open(filename))}, step=step
+                )
                 plt.close(fig)
 
         fig = plot_mtx(jnp.matmul(model.Q[1][0], model.Kt[1][0]))
         filename = wandb.run.dir + f"/A2.png"
         plt.savefig(filename, bbox_inches="tight", dpi=100)
-        wandb.log({f"A2/{lower}_{upper}": wandb.Image(Image.open(filename))})
+        wandb.log({f"A2/{lower}_{upper}": wandb.Image(Image.open(filename))}, step=step)
         plt.close(fig)
     else:
         for i in range(len(model.A[0])):
@@ -75,7 +78,7 @@ def plot_model_catformer(
             filename = wandb.run.dir + f"/A1.png"
             plt.savefig(filename, bbox_inches="tight", dpi=100)
             # wandb.log({f"A1/{lower}_{upper}": wandb.Image(Image.open(filename))})
-            wandb.log({f"A1/head_{i}": wandb.Image(Image.open(filename))})
+            wandb.log({f"A1/head_{i}": wandb.Image(Image.open(filename))}, step=step)
             plt.close(fig)
 
             if input is not None:
@@ -89,35 +92,32 @@ def plot_model_catformer(
                 fig = plot_mtx(attn, c_bar=c_bar)
                 filename = wandb.run.dir + f"/Att1_head.png"
                 plt.savefig(filename, bbox_inches="tight", dpi=100)
-                wandb.log({f"Att1/head_{i}": wandb.Image(Image.open(filename))})
+                wandb.log(
+                    {f"Att1/head_{i}": wandb.Image(Image.open(filename))}, step=step
+                )
                 plt.close(fig)
 
         fig = plot_mtx(model.A[1][0])
         filename = wandb.run.dir + f"/A2.png"
         plt.savefig(filename, bbox_inches="tight", dpi=100)
-        wandb.log({f"A2/{lower}_{upper}": wandb.Image(Image.open(filename))})
+        wandb.log({f"A2/{lower}_{upper}": wandb.Image(Image.open(filename))}, step=step)
         plt.close(fig)
 
     fig = plot_W(model.W.T, vocab_size, seq_len, lower, upper)
     filename = wandb.run.dir + f"/W.png"
     plt.savefig(filename, bbox_inches="tight", dpi=100)
-    wandb.log({f"W/{lower}_{upper}": wandb.Image(Image.open(filename))})
+    wandb.log({f"W/{lower}_{upper}": wandb.Image(Image.open(filename))}, step=step)
     plt.close(fig)
 
 
-def plot_model_transformer(
-    model,
-    input=None,
-    qk=True,
-    c_bar=False,
-):
+def plot_model_transformer(model, input=None, qk=True, c_bar=False, step=None):
     if qk:
         for i in range(len(model.Q[0])):
             fig = plot_mtx(model.Q[0][i], model.Kt[0][i])
             filename = wandb.run.dir + f"/A1.png"
             plt.savefig(filename, bbox_inches="tight", dpi=100)
             # wandb.log({f"A1/{lower}_{upper}": wandb.Image(Image.open(filename))})
-            wandb.log({f"A1/head_{i}": wandb.Image(Image.open(filename))})
+            wandb.log({f"A1/head_{i}": wandb.Image(Image.open(filename))}, step=step)
             plt.close(fig)
 
             if input is not None:
@@ -131,13 +131,15 @@ def plot_model_transformer(
                 fig = plot_mtx_softmax(attn, c_bar=c_bar)
                 filename = wandb.run.dir + f"/Att1_head.png"
                 plt.savefig(filename, bbox_inches="tight", dpi=100)
-                wandb.log({f"Att1/head_{i}": wandb.Image(Image.open(filename))})
+                wandb.log(
+                    {f"Att1/head_{i}": wandb.Image(Image.open(filename))}, step=step
+                )
                 plt.close(fig)
 
         fig = plot_mtx(jnp.matmul(model.Q[1][0], model.Kt[1][0]))
         filename = wandb.run.dir + f"/A2.png"
         plt.savefig(filename, bbox_inches="tight", dpi=100)
-        wandb.log({f"A2/": wandb.Image(Image.open(filename))})
+        wandb.log({f"A2/": wandb.Image(Image.open(filename))}, step=step)
         plt.close(fig)
     else:
         for i in range(len(model.A[0])):
@@ -145,7 +147,7 @@ def plot_model_transformer(
             filename = wandb.run.dir + f"/A1.png"
             plt.savefig(filename, bbox_inches="tight", dpi=100)
             # wandb.log({f"A1/{lower}_{upper}": wandb.Image(Image.open(filename))})
-            wandb.log({f"A1/head_{i}": wandb.Image(Image.open(filename))})
+            wandb.log({f"A1/head_{i}": wandb.Image(Image.open(filename))}, step=step)
             plt.close(fig)
 
             if input is not None:
@@ -159,37 +161,39 @@ def plot_model_transformer(
                 fig = plot_mtx(attn, c_bar=c_bar)
                 filename = wandb.run.dir + f"/Att1_head.png"
                 plt.savefig(filename, bbox_inches="tight", dpi=100)
-                wandb.log({f"Att1/head_{i}": wandb.Image(Image.open(filename))})
+                wandb.log(
+                    {f"Att1/head_{i}": wandb.Image(Image.open(filename))}, step=step
+                )
                 plt.close(fig)
 
         fig = plot_mtx(model.A[1][0])
         filename = wandb.run.dir + f"/A2.png"
         plt.savefig(filename, bbox_inches="tight", dpi=100)
-        wandb.log({f"A2/": wandb.Image(Image.open(filename))})
+        wandb.log({f"A2/": wandb.Image(Image.open(filename))}, step=step)
         plt.close(fig)
 
     fig = plot_mtx(model.W.T)
     filename = wandb.run.dir + f"/W.png"
     plt.savefig(filename, bbox_inches="tight", dpi=100)
-    wandb.log({f"W/": wandb.Image(Image.open(filename))})
+    wandb.log({f"W/": wandb.Image(Image.open(filename))}, step=step)
     plt.close(fig)
 
 
-def plot_model_simple(model, qk=True, c_bar=False):
+def plot_model_simple(model, qk=True, c_bar=False, step=None):
     for i in range(len(model.A[0])):
         # fig = plot_A1(model.A[0][i], vocab_size, seq_len, lower, upper)
         fig = plot_mtx_softmax(model.A[0][i], c_bar=c_bar)
         filename = wandb.run.dir + f"/Att1.png"
         plt.savefig(filename, bbox_inches="tight", dpi=100)
         # wandb.log({f"A1/{lower}_{upper}": wandb.Image(Image.open(filename))})
-        wandb.log({f"Att1/head_{i}": wandb.Image(Image.open(filename))}, commit=False)
+        wandb.log({f"Att1/head_{i}": wandb.Image(Image.open(filename))}, step=step)
         plt.close(fig)
 
         fig = plot_mtx(model.A[0][i], c_bar=c_bar)
         filename = wandb.run.dir + f"/A1.png"
         plt.savefig(filename, bbox_inches="tight", dpi=100)
         # wandb.log({f"A1/{lower}_{upper}": wandb.Image(Image.open(filename))})
-        wandb.log({f"A1/head_{i}": wandb.Image(Image.open(filename))}, commit=False)
+        wandb.log({f"A1/head_{i}": wandb.Image(Image.open(filename))}, step=step)
         plt.close(fig)
 
     if not qk:
@@ -198,14 +202,14 @@ def plot_model_simple(model, qk=True, c_bar=False):
         fig = plot_mtx(jnp.squeeze(jnp.matmul(model.Q, model.Kt)), c_bar=c_bar)
     filename = wandb.run.dir + f"/A2.png"
     plt.savefig(filename, bbox_inches="tight", dpi=100)
-    wandb.log({f"A2/": wandb.Image(Image.open(filename))}, commit=False)
+    wandb.log({f"A2/": wandb.Image(Image.open(filename))}, step=step)
     plt.close(fig)
 
     for i in range(len(model.V[0])):
         fig = plot_mtx(model.V[0][i], c_bar=c_bar)
         filename = wandb.run.dir + f"/V.png"
         plt.savefig(filename, bbox_inches="tight", dpi=100)
-        wandb.log({f"V/{i}": wandb.Image(Image.open(filename))}, commit=False)
+        wandb.log({f"V/{i}": wandb.Image(Image.open(filename))}, step=step)
         plt.close(fig)
 
 

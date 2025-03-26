@@ -26,7 +26,7 @@ def main(
     model_transformer: str = "transformer",
     optimizer: str = "adamw",
     scheduler: str = "cosine",
-    mlp_out: bool = False,
+    mlp_trans: bool = True,
     log_out: bool = False,
     run_name: str = "test",
     save_plot_every: int = 2,
@@ -46,11 +46,6 @@ def main(
     rng = RNG(seed)
 
     ### GENERATE DAG
-    def generate_markov_dag(seq_len, lag, order):
-        dag = [[] for _ in range(order + lag)]
-        for i in range(order + lag, seq_len + 1):
-            dag.append([i - j for j in range(1 + lag, order + lag + 1)])
-        return dag
 
     if "markov" in dag.lower():
         dag = generate_markov_dag(seq_len, lag, order)
@@ -75,7 +70,6 @@ def main(
         "heads": heads,
         "key": rng.next(),
         "qk": qk,
-        "use_mlp": mlp_out,
         "use_log": log_out,
         "d_QK_ratio": dratio,
         "scale": scale,
@@ -93,6 +87,7 @@ def main(
             transformer_specific_params = {
                 "embedding_type": transem,  # or "onehot" or "learned"
                 "use_skip": skip,
+                "use_mlp": mlp_trans,
             }
             model = model_class(**common_params, **transformer_specific_params)
         elif model_transformer == "simple":
@@ -172,7 +167,7 @@ def main(
         return unigram, bigram_1, bigram_2, bigram_3, trigram
 
     print("Computing Bayes")
-    testx, testy = vmap(problem.sample)(rng.next(2**10))
+    testx, testy = vmap(problem.sample)(rng.next(2**14))
     logits = vmap(problem.bayes)(testx)
     bayes = criterion(logits, testy)
 
@@ -213,9 +208,21 @@ def main(
     @jit
     def step_fn(model, batch, opt_state):
         g = jax.grad(loss_fn)(model, batch)
+        grad_norm = jnp.sqrt(
+            sum(jnp.sum(jnp.square(p)) for p in jax.tree_util.tree_leaves(g))
+        )
+        for p in jax.tree_util.tree_leaves(model):
+            print(p)
+            print(jnp.sum(jnp.square(p)))
+
+        param_norm = jnp.sqrt(
+            sum(jnp.sum(jnp.square(p)) for p in jax.tree_util.tree_leaves(model))
+        )
+        print(param_norm)
+        scaled_grad_norm = grad_norm / param_norm
         updates, opt_state = opt.update(g, opt_state, model)
         model = optax.apply_updates(model, updates)
-        return model, opt_state
+        return model, opt_state, grad_norm, scaled_grad_norm
 
     iterator = batch_iterator(rng.next())
 
@@ -224,7 +231,8 @@ def main(
     test_losses = []
     pbar = tqdm(total=steps)
     wandb.init(project="sub-n-grams", config=config, name=run_name)
-
+    grad_norm = None
+    scaled_grad_norm = None
     for i in range(steps):
         if i % save_every == 0:
             test_loss = loss_fn(model, (testx, testy))
@@ -241,15 +249,22 @@ def main(
                     bigram3=bigram_3,
                     trigram=trigram,
                     loss_excess=test_loss - bayes,
-                )
+                    grad_norm=gns / gns_i,
+                    scaled_grad_norm=scaled_grad_norm,
+                ),
+                step=i,
             )
+
+            norms = get_parameter_norms_dict(model)
+            wandb.log(norms, step=i)
+
             pbar.n = i
 
             if int(i / save_every) % save_plot_every == 0:
                 if model_transformer == "simple":
-                    plot_model_simple(model, qk=qk)
+                    plot_model_simple(model, qk=qk, step=i)
                 elif model_transformer == "transformer":
-                    plot_model_transformer(model, qk=qk, input=testx[0, :])
+                    plot_model_transformer(model, qk=qk, input=testx[0, :], step=i)
                 elif model_transformer == "catformer":
                     plot_model_catformer(
                         model,
@@ -257,9 +272,17 @@ def main(
                         seq_len=seq_len,
                         vocab_size=vocab_size,
                         input=testx[0, :],
+                        step=i,
                     )
 
-        model, opt_state = step_fn(model, next(iterator), opt_state)
+            gns = 0
+            gns_i = 0
+
+        model, opt_state, grad_norm, scaled_grad_norm = step_fn(
+            model, next(iterator), opt_state
+        )
+        gns += grad_norm
+        gns_i += 1
 
     pbar.n = steps
     pbar.refresh()

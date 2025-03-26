@@ -326,8 +326,10 @@ class Transformer(Pytree):
                 self.A.append(jnp.zeros([n_head, d, d]))
                 self.V.append(jr.normal(keys[2 * i], [n_head, d, d]) / jnp.sqrt(d))
 
-        if use_mlp:
-            self.mlps.append(MLP(widths=[d, d, d], activation=nn.relu, key=keys[-3]))
+            if use_mlp:
+                self.mlps.append(
+                    MLP(widths=[d, d, d], activation=nn.relu, key=keys[-3])
+                )
         self.W = jnp.zeros((d, vocab_size))
 
         self.wte = jr.normal(keys[-2], [vocab_size, d]) / jnp.sqrt(d)
@@ -343,9 +345,12 @@ class Transformer(Pytree):
             for i in range(len(self.Q)):
                 Ai = jnp.matmul(self.Q[i], self.Kt[i])
                 Vi = self.V[i]
+                mlpi = self.mlps[i]
                 attn = jax.vmap(self.attn, (None, 0), -2)(x, Ai)
                 attn = jnp.einsum("...ijk,jkl->...ijl", attn, Vi)
                 delta = jnp.sum(attn, axis=-2)
+                if self.use_mlp:
+                    delta = jax.vmap(mlpi)(delta)
                 if self.use_skip:
                     x = x + delta
                 else:
@@ -354,9 +359,12 @@ class Transformer(Pytree):
             for i in range(len(self.A)):
                 Ai = self.A[i]
                 Vi = self.V[i]
+                mlpi = self.mlps[i]
                 attn = jax.vmap(self.attn, (None, 0), -2)(x, Ai)
                 attn = jnp.einsum("...ijk,jkl->...ijl", attn, Vi)
                 delta = jnp.sum(attn, axis=-2)
+                if self.use_mlp:
+                    delta = jax.vmap(mlpi)(delta)
                 if self.use_skip:
                     x = x + delta
                 else:
@@ -364,9 +372,6 @@ class Transformer(Pytree):
 
         x = x[..., -1, :]
         z = x @ self.W
-
-        if self.use_mlp:
-            z = jax.vmap(self.mlps[0])(z)
 
         if self.use_log:
             z = jnp.log(jnp.abs(z) + 1e-8)
