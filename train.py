@@ -233,11 +233,13 @@ def main(
     wandb.init(project="sub-n-grams", config=config, name=run_name)
     grad_norm = None
     scaled_grad_norm = None
-    gns = None
+    gns = 0
+    gns_i = 0
     for i in range(steps):
         if i % save_every == 0:
             test_loss = loss_fn(model, (testx, testy))
             test_losses.append(test_loss)
+            average_grad = gns / gns_i if gns_i != 0 else None
             wandb.log(
                 dict(
                     loss=test_loss,
@@ -250,7 +252,7 @@ def main(
                     bigram3=bigram_3,
                     trigram=trigram,
                     loss_excess=test_loss - bayes,
-                    grad_norm=gns / gns_i,
+                    grad_norm=average_grad,
                     scaled_grad_norm=scaled_grad_norm,
                 ),
                 step=i,
