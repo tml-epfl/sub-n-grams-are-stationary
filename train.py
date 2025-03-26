@@ -233,6 +233,7 @@ def main(
     wandb.init(project="sub-n-grams", config=config, name=run_name)
     grad_norm = None
     scaled_grad_norm = None
+    gns = None
     for i in range(steps):
         if i % save_every == 0:
             test_loss = loss_fn(model, (testx, testy))
