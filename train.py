@@ -26,7 +26,7 @@ def main(
     model_transformer: str = "transformer",
     optimizer: str = "adamw",
     scheduler: str = "cosine",
-    mlp_trans: bool = True,
+    mlp_trans: bool = False,
     log_out: bool = False,
     run_name: str = "test",
     save_plot_every: int = 2,
