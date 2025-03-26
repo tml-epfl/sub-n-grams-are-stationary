@@ -17,7 +17,7 @@ def main(
     alpha: float = 1,
     dag: str = "markov",
     seed: int = 0,
-    lr: float = 1e-2,
+    lr: float = 1e-3,
     wd: float = 1e-4,
     steps: int = 2**10,
     n_save: int = 2**10,
