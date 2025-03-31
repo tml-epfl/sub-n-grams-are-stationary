@@ -23,7 +23,7 @@ def main(
     n_save: int = 2**10,
     batch_size: int = 2**7,
     max_size: int = 2**15,
-    model_transformer: str = "transformer",
+    model_transformer: str = "simple",
     optimizer: str = "adamw",
     scheduler: str = "cosine",
     mlp_trans: bool = False,
@@ -211,9 +211,6 @@ def main(
         grad_norm = jnp.sqrt(
             sum(jnp.sum(jnp.square(p)) for p in jax.tree_util.tree_leaves(g))
         )
-        for p in jax.tree_util.tree_leaves(model):
-            print(p)
-            print(jnp.sum(jnp.square(p)))
 
         param_norm = jnp.sqrt(
             sum(jnp.sum(jnp.square(p)) for p in jax.tree_util.tree_leaves(model))
