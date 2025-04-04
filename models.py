@@ -95,7 +95,6 @@ class Simpleformer(Pytree):
         self.use_log = use_log
 
         d = vocab_size
-        d_hidden_QK = int(d * d_QK_ratio)
         keys = jr.split(key, 4 * len(heads) + 4)
 
         self.A = []
@@ -106,6 +105,7 @@ class Simpleformer(Pytree):
                 self.V.append(jr.normal(keys[1], [n_head, d, d]) / jnp.sqrt(d))
                 d *= 1 + n_head
             else:
+                d_hidden_QK = int(d * d_QK_ratio)
                 if qk:
                     self.Q = (
                         scale
@@ -329,8 +329,9 @@ class Transformer(Pytree):
             if use_mlp:
                 self.mlps.append(
                     MLP(widths=[d, d, d], activation=nn.relu, key=keys[-3])
+
                 )
-        self.W = jnp.zeros((d, vocab_size))
+        self.W = jr.normal( keys[0], [d, vocab_size]) / jnp.sqrt(d)
 
         self.wte = jr.normal(keys[-2], [vocab_size, d]) / jnp.sqrt(d)
         self.wpe = jr.normal(keys[-1], [seq_len, d]) / jnp.sqrt(d)
