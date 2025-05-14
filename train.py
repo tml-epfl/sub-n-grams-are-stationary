@@ -13,7 +13,7 @@ from problems import *
 
 def main(
     vocab_size: int = 5,
-    seq_len: int = 128,
+    seq_len: int = 1,
     alpha: float = 1,
     dag: str = "markov",
     seed: int = 0,
@@ -31,7 +31,7 @@ def main(
     run_name: str = "test",
     save_plot_every: int = 2,
     momentum: float = 0,
-    value_matrix: bool = True,
+    value_matrix_int: int = 0,
     qk: bool = True,
     lag: int = 0,
     custom_heads: int = 0,
@@ -40,12 +40,24 @@ def main(
     dratio: float = 1.0,
     transem: str = "learned",
     scale: float = 1.0,
+    ema_metrics: float = 0,
 ):
 
     config = locals()
     rng = RNG(seed)
 
-    ### GENERATE DAG
+    if value_matrix_int == 0:
+        value_matrix = False
+    else :
+        value_matrix = True
+    
+    if ema_metrics == 0:
+        ema_metrics = False
+    else:
+        ema_metrics = True
+
+
+    run_name = f"{model_transformer}_{seq_len}_{scheduler}_{alpha}_{value_matrix_int}_{seed}"
 
     if "markov" in dag.lower():
         dag = generate_markov_dag(seq_len, lag, order)
@@ -206,35 +218,55 @@ def main(
         opt = optax.sgd(schedule, momentum=momentum)
 
     @jit
-    def step_fn(model, batch, opt_state):
+    def step_fn(model, batch, opt_state, ema_state):
         g = jax.grad(loss_fn)(model, batch)
+
+        updates, opt_state = opt.update(g, opt_state, model)
+        model = optax.apply_updates(model, updates)
+        ema_parameters, ema_state = ema.update(model, ema_state, model)
+
+        if ema_metrics:
+            evaluating_model = ema_parameters
+        else:
+            evaluating_model = model
+        g = jax.grad(loss_fn)(evaluating_model, batch)
+        
         grad_norm = jnp.sqrt(
             sum(jnp.sum(jnp.square(p)) for p in jax.tree_util.tree_leaves(g))
         )
 
         param_norm = jnp.sqrt(
-            sum(jnp.sum(jnp.square(p)) for p in jax.tree_util.tree_leaves(model))
+            sum(jnp.sum(jnp.square(p)) for p in jax.tree_util.tree_leaves(evaluating_model))
         )
         print(param_norm)
         scaled_grad_norm = grad_norm / param_norm
-        updates, opt_state = opt.update(g, opt_state, model)
-        model = optax.apply_updates(model, updates)
-        return model, opt_state, grad_norm, scaled_grad_norm
+        return model, opt_state, ema_parameters, ema_state, grad_norm, scaled_grad_norm
+    
+
 
     iterator = batch_iterator(rng.next())
 
     opt_state = opt.init(model)
+    ema = optax.ema(decay=0.999)
+    ema_state = ema.init(model)
+
 
     test_losses = []
     pbar = tqdm(total=steps)
     wandb.init(project="sub-n-grams", config=config, name=run_name)
     grad_norm = None
     scaled_grad_norm = None
+    ema_parameters = jax.tree.map(lambda x: x.copy(), model)
+
     gns = 0
     gns_i = 0
     for i in range(steps):
         if i % save_every == 0:
-            test_loss = loss_fn(model, (testx, testy))
+            if ema_metrics:
+                evaluating_model = ema_parameters
+            else:
+                evaluating_model = model
+            test_loss = loss_fn(evaluating_model, (testx, testy))
             test_losses.append(test_loss)
             average_grad = gns / gns_i if gns_i != 0 else None
             wandb.log(
@@ -255,8 +287,10 @@ def main(
                 step=i,
             )
 
-            norms = get_parameter_norms_dict(model)
+            norms = get_parameter_norms_dict(evaluating_model)
             wandb.log(norms, step=i)
+            if model_transformer == "simple":
+                wandb.log( dict( QK_norm = jnp.linalg.norm( jnp.matmul(evaluating_model.Q, evaluating_model.Kt)) ), step = i)
 
             pbar.n = i
 
@@ -278,8 +312,8 @@ def main(
             gns = 0
             gns_i = 0
 
-        model, opt_state, grad_norm, scaled_grad_norm = step_fn(
-            model, next(iterator), opt_state
+        model, opt_state, ema_parameters, ema_state, grad_norm, scaled_grad_norm = step_fn(
+            model, next(iterator), opt_state, ema_state
         )
         gns += grad_norm
         gns_i += 1

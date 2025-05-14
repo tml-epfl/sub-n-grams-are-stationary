@@ -2,3 +2,5 @@
 *.pyc
 newsubmit.py
 runs.txt
+sweep*
+*.ipynb
