@@ -1,4 +1,5 @@
-# k-grams
+# Learning In-context n-grams with Transformers: Sub-n-grams Are Near-stationary Points
+
 
 Code for insert https://arxiv.org/abs/2508.12837
 
